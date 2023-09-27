@@ -1,10 +1,21 @@
 import { Context } from '@temporalio/activity';
 
+function sleep(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
 export async function activity1(arg1: string): Promise<string> {
-  const { log } = Context.current();
-  if (!arg1) throw new Error('arg1 is required');
-  log.info('Executing activity1', { arg1 });
-  return `[result from activity1: ${arg1}]`;
+  const runActivity = async () => {
+    const { log } = Context.current();
+    if (!arg1) throw new Error('arg1 is required');
+    await sleep(3000);
+    log.info('Executing activity1', { arg1 });
+    return `[result from activity1: ${arg1}]`;
+  };
+  // await gqlSync()
+  return await runActivity();
 }
 export async function activity2(arg: string): Promise<string> {
   const { log } = Context.current();

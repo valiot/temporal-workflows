@@ -8,6 +8,7 @@
 #    2.2.1) activity4, takes result1 as input, and put result as result4
 #    2.2.2) activity5, takes arg3 and result4 as input, and put result as result5
 # 3) activity1, takes result3 and result5 as input, and put result as result6.
+name: wf-2
 
 variables:
   arg1: value1

@@ -2,6 +2,7 @@ import { proxyActivities } from '@temporalio/workflow';
 import type * as activities from './activities';
 
 export type DSL = {
+  name: string;
   variables: Record<string, unknown>;
   root: Statement;
 };
@@ -26,8 +27,50 @@ const acts = proxyActivities<typeof activities>({
 
 export async function DSLInterpreter(dsl: DSL): Promise<unknown> {
   const bindings = dsl.variables as Record<string, string>;
-  return await execute(dsl.root, bindings);
+  const runInterpreter = async (statement: Statement, bindings: Record<string, string | undefined>) => {
+    // ! gqlSyncWorkflowStarted() // gqlClient.mutate(createWorkflowRun, {name: dsl.name})
+    const result = await execute(dsl.root, bindings);
+    // ! gqlSyncWorkflowFinished()
+    return result;
+  };
+  return await runInterpreter(dsl.root, bindings);
 }
+
+// const xstateConfig = {
+//   config: {
+//     initial: '',
+//   },
+//   services: {
+//     // def jobName(log, input, job): input.value
+//     // def jobName(ctx): ctx.value
+//     helloWorld: async (ctx, evt) => {
+//       return await acts['helloWorld'](ctx, evt);
+//     },
+//     test: async (ctx, evt) => {
+//       return await acts['test'](ctx, evt);
+//     },
+//   },
+// };
+
+/**
+ * const machineOptions = getMachineOptions(gql.query(xWorkflow))
+ * const myMachine = Machine(machineOptions)
+ * const machineInterpreter = interpret(myMachine).onTransition(() => {
+ *   ! gqlSyncTransitionHappened()
+ * })
+ * machineInterpreter.start()
+ * ! somewhere else:
+ * const count = 0
+ * ! Maybe replace with workflow signals:
+ * client.subscribe(MY_MACHINE_EVENTS, () => { // ! subscribe {workflowRunEventUpdated(workflowRunId: x){event, payload...}}
+ *   machineInterpreter.send(myEvent, myPayload)
+ *   count++
+ *   if(count > 50000) {
+ *     workflow.startAsNew()
+ *   }
+ * })
+ * await machineInterpreter.isFinished()
+ */
 
 async function execute(statement: Statement, bindings: Record<string, string | undefined>): Promise<void> {
   // note that this function returns void
@@ -42,6 +85,8 @@ async function execute(statement: Statement, bindings: Record<string, string | u
     const activity = statement.activity;
     let args = activity.arguments || [];
     args = args.map((arg) => bindings[arg] ?? arg);
+    // ! gqlSyncActivityStarted(), gqlSyncStateChanged()
+
     const activityResult = await acts[activity.name](...args);
     if (activity.result) {
       bindings[activity.result] = activityResult;
